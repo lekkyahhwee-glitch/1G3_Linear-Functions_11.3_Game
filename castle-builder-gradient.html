@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Castle Builder — Gradient of Linear Graphs</title>
+<style>
+  :root{
+    --toolbar-h: 48px;
+    --sky-top:#FFD9A0;
+    --sky-bot:#FF9A62;
+    --navy:#15172B;
+    --gold:#FFC93C;
+    --gold2:#FF9F1C;
+    --stone:#9AA5B1;
+    --stone2:#6B7684;
+    --wood:#B5723A;
+    --wood2:#8A4E24;
+    --diamond:#7EE8FA;
+    --diamond2:#3AC6E8;
+    --pink:#FF2D85;
+    --coral:#FF5A45;
+    --green:#2ECC71;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;font-family:'Trebuchet MS','Segoe UI',sans-serif;background:linear-gradient(180deg,var(--sky-top),var(--sky-bot));color:var(--navy);}
+  #app{position:relative;min-height:100vh;display:flex;flex-direction:column;}
+  h1,h2,h3{margin:0 0 8px;}
+  button{font-family:inherit;cursor:pointer;}
+  .hidden{display:none !important;}
+
+  /* ---------- Screens ---------- */
+  .screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 16px calc(24px + var(--toolbar-h));text-align:center;}
+  .card{background:#fff;border-radius:20px;padding:28px 24px;max-width:520px;width:100%;box-shadow:0 12px 30px rgba(0,0,0,.18);}
+  .card h1{font-size:1.6rem;color:var(--navy);}
+  .card p{color:#444;line-height:1.5;}
+  input[type=text]{width:100%;padding:12px 14px;border-radius:10px;border:2px solid #ddd;font-size:1rem;margin:8px 0;}
+  input[type=text]:focus{outline:none;border-color:var(--pink);}
+  .btn{display:inline-block;padding:12px 26px;border-radius:12px;border:none;font-weight:700;font-size:1rem;color:#fff;background:var(--pink);box-shadow:0 6px 0 #b8005f;transition:transform .08s;}
+  .btn:active{transform:translateY(4px);box-shadow:0 2px 0 #b8005f;}
+  .btn.secondary{background:var(--stone2);box-shadow:0 6px 0 #4d5560;}
+  .btn.green{background:var(--green);box-shadow:0 6px 0 #1e8f4e;}
+  .btn.big{font-size:1.15rem;padding:16px 34px;}
+  .btn:disabled{opacity:.5;cursor:not-allowed;box-shadow:none;transform:none;}
+
+  /* ---------- Top bar / castle scene ---------- */
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(255,255,255,.85);backdrop-filter:blur(4px);position:sticky;top:0;z-index:20;flex-wrap:wrap;gap:8px;}
+  .progress-chip{background:var(--navy);color:#fff;padding:6px 14px;border-radius:999px;font-weight:700;font-size:.85rem;}
+  .score-chip{background:var(--gold2);color:#fff;padding:6px 14px;border-radius:999px;font-weight:700;font-size:.85rem;}
+  .bet-btn{background:var(--pink);color:#fff;border:none;border-radius:999px;padding:6px 14px;font-weight:700;font-size:.8rem;box-shadow:0 3px 0 #b8005f;}
+  .bet-btn:disabled{opacity:.4;box-shadow:none;}
+
+  .scene-wrap{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;padding:10px 10px 20px;}
+  .castle-stage{position:relative;width:100%;max-width:640px;min-height:340px;background:linear-gradient(180deg,#DFF3FF 0%, #BDEBFF 60%, #9CDB8E 60%, #7BC96F 100%);border-radius:16px;overflow:hidden;box-shadow:inset 0 0 0 4px rgba(255,255,255,.5);}
+  .cloud{position:absolute;background:#fff;border-radius:50%;opacity:.85;}
+  .brick{position:absolute;border-radius:4px;box-shadow:0 2px 4px rgba(0,0,0,.25);border:2px solid rgba(0,0,0,.15);transition:transform .25s, box-shadow .25s;display:flex;align-items:center;justify-content:center;font-size:0.65rem;color:#fff;font-weight:700;}
+  .brick.wood{background:linear-gradient(180deg,var(--wood),var(--wood2));}
+  .brick.stone{background:linear-gradient(180deg,var(--stone),var(--stone2));}
+  .brick.gold{background:linear-gradient(180deg,var(--gold),var(--gold2));}
+  .brick.diamond{background:linear-gradient(180deg,var(--diamond),var(--diamond2));animation:diaPulse 1.8s ease-in-out infinite;}
+  .brick.nominated{outline:3px dashed var(--pink);outline-offset:2px;}
+  @keyframes diaPulse{0%,100%{box-shadow:0 0 6px 2px rgba(126,232,250,.6),0 2px 4px rgba(0,0,0,.25);}50%{box-shadow:0 0 18px 8px rgba(126,232,250,.95),0 2px 4px rgba(0,0,0,.25);}}
+  .flag{position:absolute;top:-2px;right:calc(50% - 90px);width:0;height:0;}
+
+  /* ---------- Question modal ---------- */
+  .modal-overlay{position:fixed;inset:0;background:rgba(10,10,20,.55);display:flex;align-items:center;justify-content:center;z-index:100;padding:14px;overflow-y:auto;}
+  .modal{background:#fff;border-radius:18px;max-width:600px;width:100%;padding:22px 20px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 50px rgba(0,0,0,.35);}
+  .skill-chip{display:inline-block;background:#EDEFFF;color:#3C3F8C;padding:3px 12px;border-radius:999px;font-size:.75rem;font-weight:700;margin-bottom:8px;}
+  .think-badge{display:inline-block;background:var(--pink);color:#fff;padding:3px 12px;border-radius:999px;font-size:.75rem;font-weight:700;margin-left:6px;}
+  .q-prompt{font-size:1.05rem;font-weight:700;margin:6px 0 12px;line-height:1.4;}
+  .diagram-wrap{display:flex;justify-content:center;margin:10px 0 16px;}
+  .diagram-wrap svg{width:100%;max-width:320px;height:auto;background:#fff;border-radius:10px;}
+  .mcq-options{display:flex;flex-direction:column;gap:10px;margin:10px 0;}
+  .opt-btn{text-align:left;padding:12px 14px;border-radius:12px;border:2px solid #ddd;background:#FAFAFC;font-size:.95rem;font-weight:600;color:var(--navy);}
+  .opt-btn:hover{border-color:var(--pink);}
+  .opt-btn.correct{background:#E5FFEF;border-color:var(--green);}
+  .opt-btn.wrong{background:#FFE9E5;border-color:var(--coral);}
+  .num-input-row{display:flex;gap:10px;margin:12px 0;flex-wrap:wrap;}
+  .num-input-row input{flex:1;min-width:160px;padding:12px;border-radius:10px;border:2px solid #ddd;font-size:1.1rem;}
+  .fb-box{border-radius:12px;padding:12px 14px;margin-top:12px;font-weight:600;line-height:1.5;}
+  .fb-box.hint{background:#FFF6D8;border:2px solid var(--gold2);}
+  .fb-box.solution{background:#FFE9E5;border:2px solid var(--coral);}
+  .fb-box.correctfb{background:#E5FFEF;border:2px solid var(--green);}
+  .step-line{display:block;padding:2px 0;font-family:'Consolas',monospace;}
+  .modal-actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;}
+
+  /* ---------- Rival Bet modal ---------- */
+  .bet-target-list{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:14px 0;}
+  .bet-target{width:46px;height:46px;border-radius:8px;border:2px solid #ccc;cursor:pointer;}
+  .bet-target.picked{outline:3px solid var(--pink);}
+
+  /* ---------- Resume modal ---------- */
+  .resume-modal{max-width:420px;}
+
+  /* ---------- End screen ---------- */
+  .rank-badge{font-size:1.4rem;font-weight:800;color:var(--navy);margin:6px 0 14px;}
+  .tier-summary{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin:14px 0;}
+  .tier-summary div{background:#F5F5FA;border-radius:12px;padding:10px 16px;font-weight:700;}
+  .gap-card{background:#FFF;border:2px solid #eee;border-radius:14px;padding:16px;margin:12px 0;text-align:left;}
+  .gap-card h4{margin:0 0 6px;color:var(--coral);}
+  .gap-card.solid h4{color:var(--green);}
+  .gap-practice{margin-top:10px;padding-top:10px;border-top:1px dashed #ddd;}
+
+  /* ---------- Math toolbar ---------- */
+  #mathToolbar{position:fixed;left:0;right:0;bottom:0;height:var(--toolbar-h);background:var(--navy);display:flex;align-items:center;overflow-x:auto;white-space:nowrap;z-index:200;padding:0 6px;}
+  #mathToolbar button{background:none;border:none;color:#fff;font-size:1rem;padding:6px 10px;flex:0 0 auto;}
+  #mathToolbar button:hover{color:var(--gold);}
+
+  /* ---------- Laser ---------- */
+  #laserToggle{position:fixed;right:14px;bottom:calc(var(--toolbar-h) + 14px);z-index:210;background:var(--navy);color:#fff;border:none;border-radius:999px;padding:10px 14px;font-size:.85rem;font-weight:700;box-shadow:0 4px 10px rgba(0,0,0,.3);}
+  #laserDot{position:fixed;width:16px;height:16px;border-radius:50%;background:radial-gradient(circle,#FF2D85,#B8005F);box-shadow:0 0 14px 6px rgba(255,45,133,.7);pointer-events:none;z-index:999;display:none;transform:translate(-50%,-50%);}
+
+  @media print{ #mathToolbar,#laserToggle{display:none;} }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- START SCREEN -->
+  <div id="screenStart" class="screen">
+    <div class="card">
+      <h1>🏰 Castle Builder</h1>
+      <p><strong>11.3 Gradient of Linear Graphs</strong></p>
+      <p>Answer questions correctly to earn bricks and build your castle. Gold bricks for a 1st-try answer, Stone for 2nd try, Wood if you need the answer revealed.</p>
+      <input type="text" id="inputSession" placeholder="Class session code">
+      <input type="text" id="inputName" placeholder="Your name">
+      <div style="margin-top:14px;">
+        <button class="btn big" id="btnStart">Start Building</button>
+      </div>
+      <p style="font-size:.8rem;color:#999;margin-top:14px;">You can reset your progress any time using the Reset button at the top of the screen.</p>
+    </div>
+  </div>
+
+  <!-- RESUME MODAL -->
+  <div id="resumeOverlay" class="modal-overlay hidden">
+    <div class="modal resume-modal" style="text-align:center;">
+      <h2>Welcome back! 👋</h2>
+      <p>We found progress from your last session. Continue where you left off, or start a fresh castle?</p>
+      <div class="modal-actions" style="justify-content:center;">
+        <button class="btn green" id="btnResumeContinue">Continue Castle</button>
+        <button class="btn secondary" id="btnResumeRestart">Start Fresh</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div id="screenGame" class="screen hidden" style="padding:0;justify-content:flex-start;">
+    <div class="topbar" style="width:100%;">
+      <div class="progress-chip" id="progressChip">Brick 1 / 12</div>
+      <button class="bet-btn" id="btnRivalBet" disabled>🎲 Rival Builder's Bet</button>
+      <div class="score-chip" id="scoreChip">🥇0 🪨0 🪵0</div>
+      <button class="btn secondary" id="btnReset" style="padding:6px 14px;font-size:.8rem;box-shadow:none;">Reset</button>
+    </div>
+    <div class="scene-wrap">
+      <div class="castle-stage" id="castleStage"></div>
+      <button class="btn big" id="btnNextQuestion" style="margin-top:18px;">Answer Next Question ▶</button>
+    </div>
+  </div>
+
+  <!-- QUESTION MODAL -->
+  <div id="qOverlay" class="modal-overlay hidden">
+    <div class="modal" id="qModal"></div>
+  </div>
+
+  <!-- RIVAL BET MODAL -->
+  <div id="betOverlay" class="modal-overlay hidden">
+    <div class="modal" style="text-align:center;">
+      <h2>🎲 Rival Builder's Bet</h2>
+      <p>Pick one of your placed bricks to wager. Answer the <strong>next question with only 1 attempt</strong> (no hint). Get it right → that brick upgrades a tier. Get it wrong → it drops a tier.</p>
+      <div class="bet-target-list" id="betTargetList"></div>
+      <div class="modal-actions" style="justify-content:center;">
+        <button class="btn" id="btnConfirmBet" disabled>Place Bet</button>
+        <button class="btn secondary" id="btnCancelBet">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- END SCREEN -->
+  <div id="screenEnd" class="screen hidden">
+    <div class="card" style="max-width:640px;">
+      <h1>🏰 Castle Complete!</h1>
+      <div class="rank-badge" id="rankBadge"></div>
+      <div class="tier-summary" id="tierSummary"></div>
+      <h2 style="margin-top:20px;">📋 Your Learning Gaps Report</h2>
+      <div id="gapsReport" style="text-align:left;"></div>
+      <button class="btn big green" id="btnPlayAgain" style="margin-top:16px;">Build Another Castle</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- MATH TOOLBAR -->
+<div id="mathToolbar">
+  <button data-ins="+">+</button><button data-ins="−">−</button><button data-ins="×">×</button><button data-ins="÷">÷</button>
+  <button data-ins="=">=</button><button data-ins="≠">≠</button><button data-ins="≈">≈</button>
+  <button data-ins="²">x²</button><button data-ins="³">x³</button><button data-ins="√">√</button><button data-ins="^">^</button>
+  <button data-ins="π">π</button><button data-ins="θ">θ</button><button data-ins="°">°</button>
+  <button data-ins="≤">≤</button><button data-ins="≥">≥</button><button data-ins="<">&lt;</button><button data-ins=">">&gt;</button>
+  <button data-ins="∞">∞</button><button data-ins="½">½</button><button data-ins="¼">¼</button>
+  <button data-ins="∈">∈</button><button data-ins="∪">∪</button><button data-ins="∩">∩</button>
+  <button data-ins="∑">∑</button><button data-ins="Δ">Δ</button>
+</div>
+<button id="laserToggle">🔴 Laser: Off</button>
+<div id="laserDot"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ================= CONFIG ================= */
+const BACKEND_URL = "https://script.google.com/macros/s/AKfycbz3MPuRj-E_Gt1DbmscTAKernT7bis-N6_akgCE4Cek5NdnZrZUnO1WHL4cfbw-GjnI/exec";
+const GAME_NAME = "Castle Builder — Gradient of Linear Graphs";
+const STORAGE_KEY = "bls_castle_gradient_v1";
+
+/* ================= SKILL METADATA (sent as skillMeta with every logged row) ================= */
+const SKILLS = {
+  sign: {
+    label: "Sign of Gradient",
+    definition: "A line sloping UP from left to right has a POSITIVE gradient. A line sloping DOWN has a NEGATIVE gradient. A FLAT (horizontal) line has a gradient of 0. A completely VERTICAL line has an UNDEFINED gradient.",
+    example: "Line goes from bottom-left to top-right\nShape: sloping up\nGradient: Positive",
+    deckPointer: "Learning Deck — \"Reading the Shape\" section"
+  },
+  riserun: {
+    label: "Gradient from Rise ÷ Run",
+    definition: "Gradient = change in y ÷ change in x. Count the squares up/down (rise) and across (run) between two points on the line, then divide.",
+    example: "From (1, 1) to (3, 5) on the grid\nChange in y = 5 − 1 = 4\nChange in x = 3 − 1 = 2\nGradient = 4 ÷ 2\nGradient = 2",
+    deckPointer: "Learning Deck — \"Counting Rise Over Run\" section"
+  },
+  formula: {
+    label: "Gradient Formula (Two Points)",
+    definition: "Gradient = (y2 − y1) ÷ (x2 − x1), using the coordinates of any two points on the line.",
+    example: "A(2, 3) and B(6, 11)\nGradient = (11 − 3) ÷ (6 − 2)\nGradient = 8 ÷ 4\nGradient = 2",
+    deckPointer: "Learning Deck — \"The Gradient Formula\" section"
+  },
+  thinking: {
+    label: "Explaining Gradient",
+    definition: "Being able to explain WHY a gradient is positive, negative, zero or undefined, and spot common mistakes — not just calculate it.",
+    example: "A vertical line has no horizontal change\nChange in x = 0\nDividing by 0 is not possible\nSo a vertical line's gradient is undefined",
+    deckPointer: "Learning Deck — \"Reading the Shape\" section"
+  }
+};
+
+/* ================= DIAGRAM BUILDER ================= */
+// Builds a simple coordinate-grid SVG with an optional line, rise/run triangle, and labelled points.
+function buildGrid(cfg){
+  const W=320,H=320;
+  const {xMin,xMax,yMin,yMax} = cfg;
+  const toPx = (x,y)=>{
+    const px = ((x-xMin)/(xMax-xMin))*W;
+    const py = H-((y-yMin)/(yMax-yMin))*H;
+    return [px,py];
+  };
+  let s = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+  s += `<rect x="0" y="0" width="${W}" height="${H}" fill="#fff"/>`;
+  // gridlines
+  for(let x=Math.ceil(xMin);x<=Math.floor(xMax);x++){
+    const [px] = toPx(x,0);
+    s += `<line x1="${px}" y1="0" x2="${px}" y2="${H}" stroke="#E4E7EF" stroke-width="1"/>`;
+  }
+  for(let y=Math.ceil(yMin);y<=Math.floor(yMax);y++){
+    const [,py] = toPx(0,y);
+    s += `<line x1="0" y1="${py}" x2="${W}" y2="${py}" stroke="#E4E7EF" stroke-width="1"/>`;
+  }
+  // axes
+  if(xMin<=0 && xMax>=0){
+    const [px0] = toPx(0,0);
+    s += `<line x1="${px0}" y1="0" x2="${px0}" y2="${H}" stroke="#15172B" stroke-width="2"/>`;
+  }
+  if(yMin<=0 && yMax>=0){
+    const [,py0] = toPx(0,0);
+    s += `<line x1="0" y1="${py0}" x2="${W}" y2="${py0}" stroke="#15172B" stroke-width="2"/>`;
+  }
+  // axis number labels (attached to actual axis lines, offset; skip x-axis "0")
+  const [ax0] = toPx(0,0); const [,ay0] = toPx(0,0);
+  for(let x=Math.ceil(xMin);x<=Math.floor(xMax);x++){
+    if(x===0) continue;
+    const [px] = toPx(x,0);
+    s += `<text x="${px}" y="${ay0+14}" font-size="9" fill="#555" text-anchor="middle">${x}</text>`;
+  }
+  for(let y=Math.ceil(yMin);y<=Math.floor(yMax);y++){
+    const [,py] = toPx(0,y);
+    s += `<text x="${ax0-8}" y="${py+3}" font-size="9" fill="#555" text-anchor="end">${y}</text>`;
+  }
+  // main line (extend to grid edges through the two given points)
+  if(cfg.line){
+    const {x1,y1,x2,y2} = cfg.line;
+    let ex1,ey1,ex2,ey2;
+    if(x1===x2){ ex1=x1;ey1=yMin;ex2=x2;ey2=yMax; }
+    else {
+      const m=(y2-y1)/(x2-x1);
+      ex1=xMin; ey1=y1+m*(xMin-x1);
+      ex2=xMax; ey2=y1+m*(xMax-x1);
+    }
+    const [px1,py1]=toPx(ex1,ey1), [px2,py2]=toPx(ex2,ey2);
+    s += `<line x1="${px1}" y1="${py1}" x2="${px2}" y2="${py2}" stroke="#FF2D85" stroke-width="3" stroke-linecap="round"/>`;
+  }
+  // rise/run triangle
+  if(cfg.triangle){
+    const t=cfg.triangle;
+    const [hx1,hy1]=toPx(t.x1,t.y1), [hx2]=toPx(t.x2,t.y1);
+    const [,vy2]=toPx(t.x2,t.y2);
+    s += `<line x1="${hx1}" y1="${hy1}" x2="${hx2}" y2="${hy1}" stroke="#FF9F1C" stroke-width="3" marker-end="url(#arrow)"/>`;
+    s += `<line x1="${hx2}" y1="${hy1}" x2="${hx2}" y2="${vy2}" stroke="#3AC6E8" stroke-width="3" marker-end="url(#arrow)"/>`;
+    s += `<text x="${(hx1+hx2)/2}" y="${hy1+16}" font-size="12" fill="#FF9F1C" text-anchor="middle" font-weight="bold">${t.runLabel}</text>`;
+    s += `<text x="${hx2+10}" y="${(hy1+vy2)/2}" font-size="12" fill="#3AC6E8" font-weight="bold">${t.riseLabel}</text>`;
+  }
+  // arrow marker def
+  s = s.replace('<svg viewBox', `<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#666"/></marker></defs><svg viewBox`);
+  // labelled points
+  if(cfg.points){
+    cfg.points.forEach(p=>{
+      const [px,py]=toPx(p.x,p.y);
+      s += `<circle cx="${px}" cy="${py}" r="4" fill="#15172B"/>`;
+      s += `<text x="${px+8}" y="${py-6}" font-size="12" fill="#15172B" font-weight="bold">${p.label}</text>`;
+    });
+  }
+  s += `</svg>`;
+  return s;
+}
+
+// Illustrative (not-to-scale) two-point sketch for the formula questions
+function buildSketch(pA,pB){
+  const W=320,H=260;
+  const ax=70, ay=210, bx=250, by=50;
+  const A = pA, B = pB;
+  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+    <rect x="0" y="0" width="${W}" height="${H}" fill="#fff"/>
+    <line x1="20" y1="${H-20}" x2="${W-10}" y2="${H-20}" stroke="#15172B" stroke-width="2"/>
+    <line x1="30" y1="${H-10}" x2="30" y2="10" stroke="#15172B" stroke-width="2"/>
+    <text x="${W-14}" y="${H-26}" font-size="12" fill="#15172B">x</text>
+    <text x="18" y="16" font-size="12" fill="#15172B">y</text>
+    <line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke="#FF2D85" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="${ax}" cy="${ay}" r="5" fill="#15172B"/>
+    <text x="${ax-6}" y="${ay+22}" font-size="13" fill="#15172B" font-weight="bold">A(${A.x}, ${A.y})</text>
+    <circle cx="${bx}" cy="${by}" r="5" fill="#15172B"/>
+    <text x="${bx-10}" y="${by-12}" font-size="13" fill="#15172B" font-weight="bold">B(${B.x}, ${B.y})</text>
+  </svg>`;
+}
+
+/* ================= QUESTIONS ================= */
+const QUESTIONS = [
+  { id:1, skill:"sign", thinking:false,
+    prompt:"What is the sign of the gradient of this line?",
+    diagram: buildGrid({xMin:-1,xMax:6,yMin:-1,yMax:7,line:{x1:0,y1:1,x2:5,y2:6}}),
+    type:"mcq",
+    options:[{t:"Positive",c:true},{t:"Negative",c:false},{t:"Zero",c:false},{t:"Undefined",c:false}],
+    hint:"Look at the line from left to right — is it climbing upward or falling downward?",
+    solution:["The line climbs upward as x increases.","An upward-sloping line has a Positive gradient."]
+  },
+  { id:2, skill:"sign", thinking:false,
+    prompt:"What is the sign of the gradient of this line?",
+    diagram: buildGrid({xMin:-1,xMax:6,yMin:-1,yMax:6,line:{x1:-1,y1:3,x2:6,y2:3}}),
+    type:"mcq",
+    options:[{t:"Positive",c:false},{t:"Negative",c:false},{t:"Zero",c:true},{t:"Undefined",c:false}],
+    hint:"Does this line go up, down, or stay flat as x increases?",
+    solution:["The line is completely flat (horizontal).","A flat line has a gradient of exactly 0 (not undefined!)."]
+  },
+  { id:3, skill:"sign", thinking:false,
+    prompt:"What is the sign of the gradient of this line?",
+    diagram: buildGrid({xMin:-1,xMax:6,yMin:-1,yMax:6,line:{x1:2,y1:-1,x2:2,y2:6}}),
+    type:"mcq",
+    options:[{t:"Positive",c:false},{t:"Negative",c:false},{t:"Zero",c:false},{t:"Undefined",c:true}],
+    hint:"This line has no horizontal change at all. What happens when you try to divide by a horizontal change of 0?",
+    solution:["This is a vertical line — the horizontal change is always 0.","Dividing by 0 is not possible.","So the gradient is Undefined."]
+  },
+  { id:4, skill:"riserun", thinking:false,
+    prompt:"Find the gradient of this line. Enter your answer as a decimal.",
+    diagram: buildGrid({xMin:-1,xMax:6,yMin:-1,yMax:8,line:{x1:1,y1:1,x2:4,y2:7},triangle:{x1:1,y1:1,x2:4,y2:7,runLabel:"3",riseLabel:"6"}}),
+    type:"numeric", accept:2, tolerance:0.01,
+    hint:"Gradient = rise ÷ run. What are the rise and run shown on the diagram?",
+    solution:["Rise = 6, Run = 3","Gradient = 6 ÷ 3","Gradient = 2"]
+  },
+  { id:5, skill:"riserun", thinking:false,
+    prompt:"Find the gradient of this line. Enter your answer as a decimal (use the − button for a negative sign).",
+    diagram: buildGrid({xMin:-1,xMax:6,yMin:-1,yMax:8,line:{x1:1,y1:7,x2:3,y2:3},triangle:{x1:1,y1:7,x2:3,y2:3,runLabel:"2",riseLabel:"−4"}}),
+    type:"numeric", accept:-2, tolerance:0.01,
+    hint:"This line slopes downward, so the rise is a drop. What sign should the gradient have?",
+    solution:["Rise = −4 (a drop), Run = 2","Gradient = −4 ÷ 2","Gradient = −2"]
+  },
+  { id:6, skill:"riserun", thinking:false,
+    prompt:"Find the gradient of this line. Enter your answer as a decimal.",
+    diagram: buildGrid({xMin:-1,xMax:7,yMin:-1,yMax:6,line:{x1:0,y1:1,x2:6,y2:4},triangle:{x1:0,y1:1,x2:6,y2:4,runLabel:"6",riseLabel:"3"}}),
+    type:"numeric", accept:0.5, tolerance:0.01,
+    hint:"Rise = 3, Run = 6. What does 3 ÷ 6 simplify to as a decimal?",
+    solution:["Rise = 3, Run = 6","Gradient = 3 ÷ 6","Gradient = 0.5"]
+  },
+  { id:7, skill:"formula", thinking:false,
+    prompt:"A is the point (1, 2). B is the point (4, 11). Find the gradient of line AB. Enter your answer as a decimal.",
+    diagram: buildSketch({x:1,y:2},{x:4,y:11}),
+    type:"numeric", accept:3, tolerance:0.01,
+    hint:"Gradient = (y2 − y1) ÷ (x2 − x1). Substitute the coordinates of A and B.",
+    solution:["Gradient = (11 − 2) ÷ (4 − 1)","Gradient = 9 ÷ 3","Gradient = 3"]
+  },
+  { id:8, skill:"formula", thinking:false,
+    prompt:"A is the point (−2, 5). B is the point (3, −5). Find the gradient of line AB. Enter your answer as a decimal.",
+    diagram: buildSketch({x:-2,y:5},{x:3,y:-5}),
+    type:"numeric", accept:-2, tolerance:0.01,
+    hint:"Gradient = (y2 − y1) ÷ (x2 − x1). Be careful with the negative coordinates.",
+    solution:["Gradient = (−5 − 5) ÷ (3 − (−2))","Gradient = −10 ÷ 5","Gradient = −2"]
+  },
+  { id:9, skill:"formula", thinking:false,
+    prompt:"A is the point (0, −3). B is the point (6, 3). Find the gradient of line AB. Enter your answer as a decimal.",
+    diagram: buildSketch({x:0,y:-3},{x:6,y:3}),
+    type:"numeric", accept:1, tolerance:0.01,
+    hint:"Gradient = (y2 − y1) ÷ (x2 − x1). Substitute the coordinates of A and B.",
+    solution:["Gradient = (3 − (−3)) ÷ (6 − 0)","Gradient = 6 ÷ 6","Gradient = 1"]
+  },
+  { id:10, skill:"thinking", thinking:true,
+    prompt:"💭 Why is the gradient of a vertical line always undefined?",
+    diagram: buildGrid({xMin:-1,xMax:6,yMin:-1,yMax:6,line:{x1:3,y1:-1,x2:3,y2:6}}),
+    type:"mcq",
+    options:[
+      {t:"Because the vertical change is always 0, so you'd divide by 0",c:false},
+      {t:"Because the horizontal change is always 0, so you'd divide by 0",c:true},
+      {t:"Because vertical lines don't have a y-intercept",c:false},
+      {t:"Because the line is too steep to measure",c:false}
+    ],
+    hint:"Gradient = change in y ÷ change in x. For a vertical line, which of those two changes is always 0?",
+    solution:["A vertical line has no horizontal change.","Change in x = 0.","Dividing by 0 is not possible, so the gradient is undefined."]
+  },
+  { id:11, skill:"thinking", thinking:true,
+    prompt:"💭 A classmate says a horizontal line \"has no gradient.\" What's the more accurate way to describe it?",
+    diagram: buildGrid({xMin:-1,xMax:6,yMin:-1,yMax:6,line:{x1:-1,y1:2,x2:6,y2:2}}),
+    type:"mcq",
+    options:[
+      {t:"It has a gradient of 0, not an undefined gradient",c:true},
+      {t:"It has an undefined gradient",c:false},
+      {t:"It has a negative gradient",c:false},
+      {t:"It genuinely has no gradient at all",c:false}
+    ],
+    hint:"Zero and undefined are different things. Which one describes a flat line?",
+    solution:["A horizontal line still has a value for its gradient.","Change in y = 0, so gradient = 0 ÷ (change in x) = 0.","So it has a gradient of 0 — that's different from 'undefined'."]
+  },
+  { id:12, skill:"thinking", thinking:true,
+    prompt:"💭 A student says this line's gradient is 6 ÷ 4 = 1.5. What mistake did they make?",
+    diagram: buildGrid({xMin:-1,xMax:6,yMin:-1,yMax:8,line:{x1:0,y1:7,x2:4,y2:1},triangle:{x1:0,y1:7,x2:4,y2:1,runLabel:"4",riseLabel:"−6"}}),
+    type:"mcq",
+    options:[
+      {t:"They divided run ÷ rise instead of rise ÷ run",c:false},
+      {t:"They forgot the gradient should be negative since the line slopes downward",c:true},
+      {t:"They should have used the point (0, 0)",c:false},
+      {t:"Gradient cannot be found from a graph at all",c:false}
+    ],
+    hint:"Look at which way the line is sloping. Should the rise be positive or negative here?",
+    solution:["The line slopes downward from left to right.","The rise should be −6, not +6.","Correct gradient = −6 ÷ 4 = −1.5, not +1.5."]
+  }
+];
+const TOTAL = QUESTIONS.length;
+
+/* ================= NUMERIC PARSING (shared helper — do not reinvent) ================= */
+function parseStudentNumber(raw){
+  if(raw==null) return NaN;
+  let s = String(raw).trim();
+  s = s.replace(/[\u2212\u2013\u2014]/g,'-'); // U+2212 minus, en-dash, em-dash → ASCII hyphen
+  // normalise comma decimal only if it looks like a decimal comma (no thousands pattern)
+  if(/^-?\d+,\d+$/.test(s)) s = s.replace(',', '.');
+  return parseFloat(s);
+}
+
+/* ================= STATE ================= */
+let state = {
+  sessionCode:"", studentName:"", attemptId:"",
+  qIndex:0, order:[],
+  bricks:[], // one entry per answered question: {qId, skill, tier, thinking}
+  gaps:[], // {qId, skill, attempts, correct}
+  betAvailable:false, betActive:false, betTargetIdx:null,
+  currentAttempt:0, currentHintShown:false, finished:false
+};
+
+function freshOrder(){
+  // fixed pedagogical order (sign -> riserun -> formula -> thinking interleaved lightly), keep as authored
+  return QUESTIONS.map(q=>q.id);
+}
+
+function newAttempt(){
+  state.attemptId = 'a' + Date.now() + Math.random().toString(36).slice(2,7);
+}
+
+function saveState(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
+}
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return null;
+    return JSON.parse(raw);
+  }catch(e){ return null; }
+}
+function clearState(){
+  try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+}
+
+/* ================= LOGGING (exact confirmed-working payload shape) ================= */
+function logAttempt(q, attemptsUsed, correct){
+  if(!BACKEND_URL) return;
+  const payload = {
+    action: 'log',
+    session: state.sessionCode || '',
+    student: state.studentName || 'Unknown',
+    game: GAME_NAME,
+    round: 'Q' + q.id,
+    skill: q.skill,
+    attempts: attemptsUsed,
+    correct: !!correct,
+    totalQuestions: TOTAL,
+    attemptId: state.attemptId || '',
+    skillMeta: SKILLS[q.skill]
+  };
+  try{
+    fetch(BACKEND_URL, { method:'POST', headers:{ 'Content-Type':'text/plain' }, body: JSON.stringify(payload) }).catch(()=>{});
+  }catch(e){}
+}
+
+/* ================= DOM refs ================= */
+const $ = sel => document.querySelector(sel);
+const screenStart = $('#screenStart'), screenGame = $('#screenGame'), screenEnd = $('#screenEnd');
+const resumeOverlay = $('#resumeOverlay');
+const qOverlay = $('#qOverlay'), qModal = $('#qModal');
+const betOverlay = $('#betOverlay'), betTargetList = $('#betTargetList');
+const castleStage = $('#castleStage');
+const progressChip = $('#progressChip'), scoreChip = $('#scoreChip');
+const btnRivalBet = $('#btnRivalBet');
+
+/* ================= INIT ================= */
+document.addEventListener('DOMContentLoaded', ()=>{
+  buildClouds();
+  const saved = loadState();
+  if(saved && saved.bricks && saved.bricks.length>0 && !saved.finished){
+    resumeOverlay.classList.remove('hidden');
+    $('#btnResumeContinue').onclick = ()=>{ state = saved; resumeOverlay.classList.add('hidden'); startGameScreen(); };
+    $('#btnResumeRestart').onclick = ()=>{ clearState(); resumeOverlay.classList.add('hidden'); };
+  }
+  $('#btnStart').onclick = onStart;
+  $('#btnReset').onclick = onReset;
+  $('#btnNextQuestion').onclick = openNextQuestion;
+  $('#btnRivalBet').onclick = openBetModal;
+  $('#btnCancelBet').onclick = ()=>{ betOverlay.classList.add('hidden'); state.betTargetIdx=null; };
+  $('#btnConfirmBet').onclick = confirmBet;
+  $('#btnPlayAgain').onclick = ()=>{ clearState(); location.reload(); };
+  initToolbar();
+  initLaser();
+});
+
+function buildClouds(){
+  for(let i=0;i<3;i++){
+    const c = document.createElement('div');
+    c.className='cloud';
+    const size = 40+Math.random()*30;
+    c.style.width=size+'px'; c.style.height=(size*0.5)+'px';
+    c.style.top=(10+Math.random()*40)+'px';
+    c.style.left=(i*30+Math.random()*10)+'%';
+    castleStage.appendChild(c);
+  }
+}
+
+function onStart(){
+  const sess = $('#inputSession').value.trim();
+  const name = $('#inputName').value.trim();
+  if(!name){ shakeInput($('#inputName')); return; }
+  state.sessionCode = sess; state.studentName = name;
+  state.order = freshOrder();
+  newAttempt();
+  saveState();
+  startGameScreen();
+}
+
+function shakeInput(el){
+  el.style.borderColor = 'var(--coral)';
+  setTimeout(()=>{ el.style.borderColor=''; },900);
+}
+
+function onReset(){
+  showConfirmModal("Reset your castle? This clears all bricks and cannot be undone.", ()=>{
+    clearState();
+    location.reload();
+  });
+}
+
+// Custom in-page confirm (native confirm() is blocked in sandboxed iframes)
+function showConfirmModal(msg, onYes){
+  const ov = document.createElement('div');
+  ov.className='modal-overlay';
+  ov.innerHTML = `<div class="modal" style="max-width:380px;text-align:center;">
+    <p style="font-weight:600;">${msg}</p>
+    <div class="modal-actions" style="justify-content:center;">
+      <button class="btn" id="cfYes">Yes, reset</button>
+      <button class="btn secondary" id="cfNo">Cancel</button>
+    </div></div>`;
+  document.body.appendChild(ov);
+  ov.querySelector('#cfYes').onclick = ()=>{ document.body.removeChild(ov); onYes(); };
+  ov.querySelector('#cfNo').onclick = ()=>{ document.body.removeChild(ov); };
+}
+
+function startGameScreen(){
+  screenStart.classList.add('hidden');
+  screenEnd.classList.add('hidden');
+  screenGame.classList.remove('hidden');
+  renderCastle();
+  updateHUD();
+  if(state.bricks.length>=TOTAL){ finishGame(); return; }
+}
+
+function updateHUD(){
+  progressChip.textContent = `Brick ${Math.min(state.bricks.length+1,TOTAL)} / ${TOTAL}`;
+  const g = state.bricks.filter(b=>b.tier==='gold').length;
+  const s = state.bricks.filter(b=>b.tier==='stone').length;
+  const w = state.bricks.filter(b=>b.tier==='wood').length;
+  scoreChip.textContent = `🥇${g} 🪨${s} 🪵${w}`;
+  btnRivalBet.disabled = state.bricks.length===0 || state.betActive;
+  $('#btnNextQuestion').textContent = state.bricks.length>=TOTAL ? 'See Your Castle Results 🏁' : 'Answer Next Question ▶';
+}
+
+/* ================= CASTLE RENDERING ================= */
+// Fixed castle "slots" (same shape for everyone) — 12 bricks: base wall (8) + two towers (4)
+const CASTLE_SLOTS = [
+  {x:20,y:260,w:44,h:40},{x:66,y:260,w:44,h:40},{x:112,y:260,w:44,h:40},{x:158,y:260,w:44,h:40},
+  {x:204,y:260,w:44,h:40},{x:250,y:260,w:44,h:40},{x:296,y:260,w:44,h:40},{x:342,y:260,w:44,h:40},
+  {x:30,y:200,w:60,h:60},{x:330,y:200,w:60,h:60},
+  {x:30,y:150,w:60,h:50},{x:330,y:150,w:60,h:50}
+];
+
+function renderCastle(){
+  castleStage.querySelectorAll('.brick,.flag').forEach(el=>el.remove());
+  state.bricks.forEach((b,i)=>{
+    if(i>=CASTLE_SLOTS.length) return;
+    const slot = CASTLE_SLOTS[i];
+    const div = document.createElement('div');
+    div.className = 'brick ' + b.tier;
+    div.style.left = (slot.x/400*100)+'%';
+    div.style.top = slot.y+'px';
+    div.style.width = (slot.w/400*100)+'%';
+    div.style.height = slot.h+'px';
+    div.dataset.idx = i;
+    castleStage.appendChild(div);
+  });
+  // flag if any diamond
+  if(state.bricks.some(b=>b.tier==='diamond')){
+    const flag = document.createElement('div');
+    flag.style.cssText='position:absolute;top:40px;left:calc(50% - 8px);font-size:34px;';
+    flag.textContent='🚩';
+    castleStage.appendChild(flag);
+  }
+}
+
+/* ================= QUESTION FLOW ================= */
+function openNextQuestion(){
+  if(state.bricks.length>=TOTAL){ finishGame(); return; }
+  const qId = state.order[state.bricks.length];
+  const q = QUESTIONS.find(x=>x.id===qId);
+  state.currentAttempt = 0;
+  state.currentHintShown = false;
+  state._optOrder = shuffle(q.options ? q.options.map((o,i)=>i) : null);
+  renderQuestion(q, {betMode:false});
+}
+
+function shuffle(arr){
+  if(!arr) return null;
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+function renderQuestion(q, opts){
+  const betMode = opts && opts.betMode;
+  let html = `<div class="skill-chip">${SKILLS[q.skill].label}</div>`;
+  if(betMode) html += `<span class="think-badge">🎲 Rival Bet — 1 attempt only</span>`;
+  html += `<div class="q-prompt">${q.prompt}</div>`;
+  html += `<div class="diagram-wrap">${q.diagram}</div>`;
+  html += `<div id="answerArea"></div>`;
+  html += `<div id="fbArea"></div>`;
+  html += `<div class="modal-actions" id="qActions"></div>`;
+  qModal.innerHTML = html;
+
+  const answerArea = $('#answerArea');
+  if(q.type==='mcq'){
+    const order = state._optOrder;
+    let optHtml = '<div class="mcq-options">';
+    order.forEach(origIdx=>{
+      optHtml += `<button class="opt-btn" data-idx="${origIdx}">${q.options[origIdx].t}</button>`;
+    });
+    optHtml += '</div>';
+    answerArea.innerHTML = optHtml;
+    answerArea.querySelectorAll('.opt-btn').forEach(btn=>{
+      btn.onclick = ()=> submitMCQ(q, parseInt(btn.dataset.idx,10), betMode);
+    });
+  } else {
+    answerArea.innerHTML = `<div class="num-input-row">
+      <input type="text" id="numAnswer" placeholder="Your answer" inputmode="decimal">
+      <button class="btn" id="btnSubmitNum">Submit</button>
+    </div>`;
+    $('#btnSubmitNum').onclick = ()=> submitNumeric(q, betMode);
+    $('#numAnswer').addEventListener('keydown', e=>{ if(e.key==='Enter') submitNumeric(q, betMode); });
+  }
+  qOverlay.classList.remove('hidden');
+}
+
+function submitMCQ(q, idx, betMode){
+  const correct = !!q.options[idx].c;
+  handleAnswer(q, correct, betMode, ()=>{
+    // lock buttons, colour them
+    document.querySelectorAll('.opt-btn').forEach(btn=>{
+      const bi = parseInt(btn.dataset.idx,10);
+      btn.disabled = true;
+      if(q.options[bi].c) btn.classList.add('correct');
+      else if(bi===idx) btn.classList.add('wrong');
+    });
+  });
+}
+
+function submitNumeric(q, betMode){
+  const raw = $('#numAnswer').value;
+  const val = parseStudentNumber(raw);
+  const correct = !isNaN(val) && Math.abs(val - q.accept) <= (q.tolerance||0.01);
+  handleAnswer(q, correct, betMode, ()=>{ $('#btnSubmitNum').disabled=true; $('#numAnswer').disabled=true; });
+}
+
+function handleAnswer(q, correct, betMode, lockUI){
+  state.currentAttempt++;
+  lockUI();
+  const fbArea = $('#fbArea');
+  const qActions = $('#qActions');
+
+  if(correct){
+    fbArea.innerHTML = `<div class="fb-box correctfb">✅ Correct! ${state.currentAttempt===1 ? 'Nice — first try!' : 'Well done on your second attempt.'}</div>`;
+    qActions.innerHTML = `<button class="btn green" id="btnContinue">Continue ▶</button>`;
+    $('#btnContinue').onclick = ()=> finaliseQuestion(q, state.currentAttempt, true, betMode);
+    if(!betMode) logAttempt(q, state.currentAttempt, true);
+    return;
+  }
+
+  if(betMode){
+    // Rival bet: exactly 1 attempt, straight to reveal on miss, no hint
+    fbArea.innerHTML = solutionBox(q) + `<div class="fb-box" style="background:#FFE9E5;border:2px solid var(--coral);margin-top:8px;">Your wagered brick drops a tier.</div>`;
+    qActions.innerHTML = `<button class="btn secondary" id="btnContinue">Continue ▶</button>`;
+    $('#btnContinue').onclick = ()=> finaliseQuestion(q, state.currentAttempt, false, betMode);
+    return;
+  }
+
+  if(state.currentAttempt===1){
+    fbArea.innerHTML = `<div class="fb-box hint">💡 Not quite. Hint: ${q.hint}</div>`;
+    qActions.innerHTML = `<button class="btn" id="btnTryAgain">Try Again</button>`;
+    $('#btnTryAgain').onclick = ()=> reEnableAnswer(q);
+    state.currentHintShown = true;
+  } else {
+    fbArea.innerHTML = solutionBox(q) + `<div class="fb-box" style="background:#FFF6D8;border:2px solid var(--gold2);margin-top:8px;">No worries — if this still feels tricky, ask a friend or your teacher. You can still try the answer once more below, but it won't count for points.</div>
+      <div id="freeAnswerRow" style="margin-top:10px;"></div>`;
+    renderFreeRetry(q);
+    qActions.innerHTML = `<button class="btn secondary" id="btnContinue">Continue ▶</button>`;
+    $('#btnContinue').onclick = ()=> finaliseQuestion(q, state.currentAttempt, false, betMode);
+    logAttempt(q, state.currentAttempt, false);
+  }
+}
+
+// Ungraded, unlogged retry offered after the 2nd miss — gives feedback but never affects score/tracker.
+function renderFreeRetry(q){
+  const row = $('#freeAnswerRow');
+  if(q.type==='mcq'){
+    const order = shuffle(q.options.map((o,i)=>i));
+    row.innerHTML = `<div class="mcq-options">` + order.map(i=>`<button class="opt-btn" data-idx="${i}">${q.options[i].t}</button>`).join('') + `</div><div id="freeRetryFb" class="fb-box" style="display:none;"></div>`;
+    row.querySelectorAll('.opt-btn').forEach(btn=>{
+      btn.onclick = ()=>{
+        const bi = parseInt(btn.dataset.idx,10);
+        const ok = q.options[bi].c;
+        row.querySelectorAll('.opt-btn').forEach(b=>{
+          b.disabled = true;
+          const oi = parseInt(b.dataset.idx,10);
+          if(q.options[oi].c) b.classList.add('correct'); else if(b===btn) b.classList.add('wrong');
+        });
+        const fb = $('#freeRetryFb');
+        fb.style.display='block';
+        fb.className = 'fb-box ' + (ok?'correctfb':'hint');
+        fb.textContent = ok ? '✅ That\'s it — nice work!' : 'Still not quite, but that\'s okay — review the worked solution above.';
+      };
+    });
+  } else {
+    row.innerHTML = `<div class="num-input-row"><input type="text" id="freeAnswer" placeholder="Try once more (no points)"><button class="btn secondary" id="btnFreeSubmit">Check</button></div><div id="freeRetryFb" class="fb-box" style="display:none;"></div>`;
+    $('#btnFreeSubmit').onclick = ()=>{
+      const val = parseStudentNumber($('#freeAnswer').value);
+      const ok = !isNaN(val) && Math.abs(val-q.accept)<=(q.tolerance||0.01);
+      $('#btnFreeSubmit').disabled = true; $('#freeAnswer').disabled = true;
+      const fb = $('#freeRetryFb');
+      fb.style.display='block';
+      fb.className = 'fb-box ' + (ok?'correctfb':'hint');
+      fb.textContent = ok ? '✅ That\'s it — nice work!' : 'Still not quite, but that\'s okay — review the worked solution above.';
+    };
+  }
+}
+
+
+function solutionBox(q){
+  let stepsHtml = q.solution.map(l=>`<span class="step-line">${l}</span>`).join('');
+  return `<div class="fb-box solution">📘 Worked solution:<br>${stepsHtml}</div>`;
+}
+
+function reEnableAnswer(q){
+  const fbArea = $('#fbArea'); const qActions = $('#qActions');
+  fbArea.innerHTML=''; qActions.innerHTML='';
+  if(q.type==='mcq'){
+    document.querySelectorAll('.opt-btn').forEach(btn=>{ btn.disabled=false; btn.classList.remove('correct','wrong'); });
+  } else {
+    $('#numAnswer').disabled=false; $('#numAnswer').value=''; $('#btnSubmitNum').disabled=false;
+  }
+}
+
+function finaliseQuestion(q, attemptsUsed, correct, betMode){
+  qOverlay.classList.add('hidden');
+  if(betMode){
+    resolveBet(correct);
+    return;
+  }
+  let tier = correct ? (attemptsUsed===1 ? 'gold' : 'stone') : 'wood';
+  state.bricks.push({qId:q.id, skill:q.skill, tier, thinking:!!q.thinking});
+  if(!correct || attemptsUsed>1){
+    state.gaps.push({qId:q.id, skill:q.skill, attempts: correct? attemptsUsed : 'missed', correct});
+  }
+  saveState();
+  renderCastle();
+  updateHUD();
+  if(state.bricks.length>=TOTAL){ finishGame(); }
+}
+
+/* ================= RIVAL BUILDER'S BET ================= */
+function openBetModal(){
+  if(state.bricks.length===0) return;
+  betTargetList.innerHTML='';
+  state.bricks.forEach((b,i)=>{
+    const d = document.createElement('div');
+    d.className = 'bet-target ' + (b.tier==='diamond'?'diamond':b.tier==='gold'?'gold':b.tier==='stone'?'stone':'wood');
+    d.style.background = b.tier==='diamond' ? 'linear-gradient(180deg,var(--diamond),var(--diamond2))' :
+      b.tier==='gold' ? 'linear-gradient(180deg,var(--gold),var(--gold2))' :
+      b.tier==='stone' ? 'linear-gradient(180deg,var(--stone),var(--stone2))' :
+      'linear-gradient(180deg,var(--wood),var(--wood2))';
+    d.dataset.idx = i;
+    d.onclick = ()=>{
+      betTargetList.querySelectorAll('.bet-target').forEach(x=>x.classList.remove('picked'));
+      d.classList.add('picked');
+      state.betTargetIdx = i;
+      $('#btnConfirmBet').disabled=false;
+    };
+    betTargetList.appendChild(d);
+  });
+  $('#btnConfirmBet').disabled=true;
+  betOverlay.classList.remove('hidden');
+}
+
+function confirmBet(){
+  if(state.betTargetIdx==null) return;
+  betOverlay.classList.add('hidden');
+  state.betActive = true;
+  // pick a fresh random question not yet answered as the bet question (allow reuse from full pool)
+  const q = QUESTIONS[Math.floor(Math.random()*QUESTIONS.length)];
+  state._optOrder = shuffle(q.options ? q.options.map((o,i)=>i) : null);
+  state.currentAttempt = 0;
+  renderQuestion(q, {betMode:true});
+}
+
+const TIER_ORDER = ['wood','stone','gold','diamond'];
+function resolveBet(won){
+  const idx = state.betTargetIdx;
+  const brick = state.bricks[idx];
+  let ti = TIER_ORDER.indexOf(brick.tier);
+  if(won){ ti = Math.min(ti+1, TIER_ORDER.length-1); }
+  else { ti = Math.max(ti-1, 0); }
+  brick.tier = TIER_ORDER[ti];
+  state.betActive = false;
+  state.betTargetIdx = null;
+  saveState();
+  renderCastle();
+  updateHUD();
+}
+
+/* ================= END GAME ================= */
+function finishGame(){
+  state.finished = true;
+  saveState();
+  screenGame.classList.add('hidden');
+  screenEnd.classList.remove('hidden');
+
+  const g = state.bricks.filter(b=>b.tier==='gold').length;
+  const s = state.bricks.filter(b=>b.tier==='stone').length;
+  const w = state.bricks.filter(b=>b.tier==='wood').length;
+  const d = state.bricks.filter(b=>b.tier==='diamond').length;
+  $('#tierSummary').innerHTML = `<div>🥇 Gold: ${g}</div><div>🪨 Stone: ${s}</div><div>🪵 Wood: ${w}</div>${d>0?`<div>💎 Diamond: ${d}</div>`:''}`;
+
+  let rank;
+  if(d>0) rank = "💎 Diamond Architect";
+  else {
+    const score = g*3+s*2+w*1;
+    if(score>=32) rank = "👑 Master Builder";
+    else if(score>=24) rank = "🏰 Skilled Builder";
+    else if(score>=16) rank = "🧱 Steady Builder";
+    else rank = "🔨 Apprentice Builder";
+  }
+  $('#rankBadge').textContent = rank;
+
+  renderGapsReport();
+}
+
+function renderGapsReport(){
+  const bySkill = {};
+  Object.keys(SKILLS).forEach(k=>bySkill[k]={hasGap:false});
+  state.gaps.forEach(g=>{ bySkill[g.skill].hasGap = true; });
+
+  let html = '';
+  Object.keys(SKILLS).forEach(key=>{
+    const meta = SKILLS[key];
+    if(bySkill[key].hasGap){
+      const exSteps = meta.example.split('\n').map(l=>`<span class="step-line">${l}</span>`).join('');
+      html += `<div class="gap-card">
+        <h4>⚠️ ${meta.label}</h4>
+        <p>${meta.definition}</p>
+        <div class="gap-practice">
+          <strong>Worked example:</strong><br>${exSteps}
+        </div>
+        <p style="margin-top:10px;font-size:.85rem;color:#666;">📖 Revisit: ${meta.deckPointer}</p>
+        ${renderMiniPractice(key)}
+      </div>`;
+    } else {
+      html += `<div class="gap-card solid"><h4>✅ ${meta.label}</h4><p>Solid work here — no gaps found!</p></div>`;
+    }
+  });
+  $('#gapsReport').innerHTML = html;
+  Object.keys(SKILLS).forEach(key=>{ if(bySkill[key].hasGap) wireMiniPractice(key); });
+}
+
+let miniPracticeQ = {};
+function renderMiniPractice(key){
+  // pick one un-attempted-feeling practice question of this skill for low-stakes retry
+  const pool = QUESTIONS.filter(q=>q.skill===key);
+  const q = pool[Math.floor(Math.random()*pool.length)];
+  miniPracticeQ[key] = q;
+  const id = 'mini_'+key;
+  let inner = '';
+  if(q.type==='mcq'){
+    const order = shuffle(q.options.map((o,i)=>i));
+    inner = `<div class="mcq-options" id="${id}_opts">` + order.map(i=>`<button class="opt-btn" data-idx="${i}">${q.options[i].t}</button>`).join('') + `</div>`;
+  } else {
+    inner = `<div class="num-input-row"><input type="text" id="${id}_input" placeholder="Your answer"><button class="btn" id="${id}_submit">Check</button></div>`;
+  }
+  return `<div class="gap-practice"><strong>Low-stakes practice (no points):</strong>
+    <div class="q-prompt" style="font-size:.9rem;">${q.prompt}</div>
+    <div class="diagram-wrap">${q.diagram}</div>
+    ${inner}
+    <div id="${id}_fb"></div>
+  </div>`;
+}
+
+function wireMiniPractice(key){
+  const q = miniPracticeQ[key];
+  const id = 'mini_'+key;
+  const fb = document.getElementById(id+'_fb');
+  if(q.type==='mcq'){
+    document.querySelectorAll(`#${id}_opts .opt-btn`).forEach(btn=>{
+      btn.onclick = ()=>{
+        const bi = parseInt(btn.dataset.idx,10);
+        const ok = q.options[bi].c;
+        document.querySelectorAll(`#${id}_opts .opt-btn`).forEach(b=>{
+          b.disabled=true;
+          const oi = parseInt(b.dataset.idx,10);
+          if(q.options[oi].c) b.classList.add('correct'); else if(b===btn) b.classList.add('wrong');
+        });
+        fb.innerHTML = ok ? `<div class="fb-box correctfb">✅ That's it!</div>` : solutionBox(q);
+      };
+    });
+  } else {
+    document.getElementById(id+'_submit').onclick = ()=>{
+      const val = parseStudentNumber(document.getElementById(id+'_input').value);
+      const ok = !isNaN(val) && Math.abs(val-q.accept)<=(q.tolerance||0.01);
+      fb.innerHTML = ok ? `<div class="fb-box correctfb">✅ That's it!</div>` : solutionBox(q);
+    };
+  }
+}
+
+/* ================= MATH TOOLBAR ================= */
+function initToolbar(){
+  document.querySelectorAll('#mathToolbar button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const ins = btn.dataset.ins;
+      const active = document.activeElement;
+      if(active && (active.tagName==='INPUT')){
+        const start = active.selectionStart ?? active.value.length;
+        const end = active.selectionEnd ?? active.value.length;
+        active.value = active.value.slice(0,start) + ins + active.value.slice(end);
+        active.selectionStart = active.selectionEnd = start + ins.length;
+        active.focus();
+      }
+    });
+  });
+}
+
+/* ================= LASER POINTER ================= */
+function initLaser(){
+  let on = false;
+  const dot = $('#laserDot');
+  const toggle = $('#laserToggle');
+  toggle.addEventListener('click', ()=>{
+    on = !on;
+    toggle.textContent = on ? '🟢 Laser: On' : '🔴 Laser: Off';
+    dot.style.display = on ? 'block' : 'none';
+  });
+  document.addEventListener('pointermove', e=>{
+    if(!on) return;
+    dot.style.left = e.clientX+'px';
+    dot.style.top = e.clientY+'px';
+  }, {passive:true});
+}
+
+})();
+</script>
+</body>
+</html>
